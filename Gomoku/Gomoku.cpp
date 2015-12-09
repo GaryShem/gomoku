@@ -104,13 +104,13 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    hInst = hInstance; // Store instance handle in our global variable
 
    hWnd = CreateWindow(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-      CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, NULL, NULL, hInstance, NULL);
+      CW_USEDEFAULT, 0, 500, 500, NULL, NULL, hInstance, NULL);
    int buttonSize = 25;
    for (int i = 0; i < SIZE; i++)
 	   for (int j = 0; j < SIZE; j++)
 			CreateWindowEx(WS_EX_STATICEDGE, L"BUTTON", L"", WS_CHILD | WS_VISIBLE,
 			20+j*buttonSize, 20+i*buttonSize, buttonSize, buttonSize,
-			hWnd, (HMENU)(BUTTONZ+i), hInstance, NULL);
+			hWnd, (HMENU)(BUTTONZ+i*SIZE+j), hInstance, NULL);
 
    if (!hWnd)
    {
@@ -138,13 +138,24 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	int wmId, wmEvent;
 	PAINTSTRUCT ps;
 	HDC hdc;
-
+	int player;
 	switch (message)
 	{
 	case WM_COMMAND:
 		wmId    = LOWORD(wParam);
 		wmEvent = HIWORD(wParam);
 		// Parse the menu selections:
+		if (wmId >= BUTTONZ && wmId < BUTTONZEND)
+		{
+			try{
+				g_field.TakeTurn(wmId - BUTTONZ, player);
+				SetDlgItemTextA(hWnd, wmId, Field::GameSymbols[player]);
+			}
+			catch (const char* msg)
+			{
+				MessageBoxA(NULL, msg, "Turn error", MB_OK);
+			}
+		}
 		switch (wmId)
 		{
 		case IDM_ABOUT:

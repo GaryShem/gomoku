@@ -18,14 +18,14 @@ public:
 
 	//значки игроков и значок незанятого поля
 	//можно играть в "слепое" гомоку - поставить везде пробельчики и играть по памяти
-	static const char GameSymbols[3]; //= { ' ', 'X', 'O' };
+	static char* GameSymbols[3]; //= { ' ', 'X', 'O' };
 //	const char playerOneSymbol = 'X';
 //	const char playerTwoSymbol = 'O';
 //	const char neutralSymbol = ' ';
 
 	//функция инициации хода
-	int TakeTurn (int n, int player);
-	int TakeTurn (int row, int column, int player);
+	int TakeTurn (int n, int& player);
+	int TakeTurn (int row, int column, int& player);
 
 	//преобразование массива к std::string. Мало ли.
 	std::string toString();
@@ -41,8 +41,8 @@ private:
 	//пытаемся поставить знак указанного игрока
 	//если ход валиден, метод вернёт true
 	//если такой ход сделать нельзя (за пределами поля или уже есть знак) - вернёт false
-	bool PlaceSymbol(int n, int player);
-	bool PlaceSymbol(int row, int column, int player);
+	bool PlaceSymbol(int n);
+	bool PlaceSymbol(int row, int column);
 
 	int _lastTurn = -1;
 	//номер игрока, который ходит сейчас
