@@ -19,9 +19,8 @@ public:
 	//значки игроков и значок незанятого поля
 	//можно играть в "слепое" гомоку - поставить везде пробельчики и играть по памяти
 	static char* GameSymbols[3]; //= { ' ', 'X', 'O' };
-//	const char playerOneSymbol = 'X';
-//	const char playerTwoSymbol = 'O';
-//	const char neutralSymbol = ' ';
+
+	int GetGamestate();
 
 	//функция инициации хода
 	int TakeTurn (int n, int& player);
@@ -34,6 +33,9 @@ public:
 	int WhoWon(int turnIndex);
 	int WhoWon(int turnRow, int turnColumn);
 private:
+	//состояние игры
+	int _gameState = 0;
+
 	//проверяет по координатам, находится ли клетка внутри поля
 	bool IsWithinBounds(int n);
 	bool IsWithinBounds(int row, int column);

@@ -12,6 +12,11 @@ Field::Field()
 		c = 0;
 }
 
+int Field::GetGamestate()
+{
+	return _gameState;
+}
+
 /**
 Возвращаемые значения:
 Ошибка: Эксепшн-строка с текстом ошибки
@@ -22,9 +27,14 @@ Field::Field()
 */
 int Field::TakeTurn(int n, int& player)
 {
+	if (_gameState != 0)
+		throw "Game is over, no turns can be taken";
 	int winner;
 	if ((winner = WhoWon(_lastTurn)) != 0)
+	{
+		_gameState = winner;
 		return winner;
+	}
 
 	//если пытаются пойти за пределы поля
 	if (IsWithinBounds(n) == false)
@@ -39,7 +49,8 @@ int Field::TakeTurn(int n, int& player)
 	_activePlayerNumber = (_activePlayerNumber % 2) + 1;
 
 	_lastTurn = n;
-	return WhoWon(n);
+	_gameState = WhoWon(n);
+	return _gameState;
 }
 
 int Field::TakeTurn(int row, int column, int& player)
@@ -92,17 +103,22 @@ int Field::WhoWon(int turnIndex)
 	//проверяем каждое направление
 	for (int k = 0; k < 4 && count < 5; k++)
 	{
-
+		count = 0;
 		//идём по нему от от меньшего к большему
 		//всего 9 шагов - по 4 в меньшую и большую стороны (чтобы с текущей клеткой было 5 - это предельные значения)
 		int row = (turnIndex/size) + directions[k][0] * (-4);
-		int column = (turnIndex%size) - directions[k][1] * (-4);
+		int column = (turnIndex%size) + directions[k][1] * (-4);
 		for (int step = 0, limit = streak*2-1; step < limit && count < 5; step++)
 		{
-			//если эта клетка за пределами с "меньшей" стороны, то потом мы можем прийти на поле,
+			//если эта клетка за пределами поля, то она не может быть частью серии
 			//поэтому лучше просто пропустить итерацию цикла, а не выходить из него
 			if (IsWithinBounds(row, column) == false)
-				continue;
+			{
+				//двигаемся в нужном нам направлении
+				//row += directions[k][0];
+				//column += directions[k][1];
+				//continue;
+			}
 			else if (_field[row*size + column] == _field[turnIndex])
 			{ //иначе, если мы встретили нужный символ, то увеличиваем счётчик серии
 				count++;

@@ -103,6 +103,9 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
    hInst = hInstance; // Store instance handle in our global variable
 
+   //HMENU hMenu = CreateMenu(); 
+	//HMENU hPopMenuFile = CreatePopupMenu();
+
    hWnd = CreateWindow(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
       CW_USEDEFAULT, 0, 500, 500, NULL, NULL, hInstance, NULL);
    int buttonSize = 25;
@@ -111,6 +114,13 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 			CreateWindowEx(WS_EX_STATICEDGE, L"BUTTON", L"", WS_CHILD | WS_VISIBLE,
 			20+j*buttonSize, 20+i*buttonSize, buttonSize, buttonSize,
 			hWnd, (HMENU)(BUTTONZ+i*SIZE+j), hInstance, NULL);
+
+   GetMenuItemInfo()
+   
+   //AppendMenu(hMenu, MF_STRING | MF_POPUP, (UINT)hPopMenuFile, L"File");
+   //AppendMenu(hPopMenuFile, MF_STRING, 1001, L"wat");
+   //AppendMenu(hMenu1, MF_STRING, 0, L"Filikii");
+   //SetMenu(hWnd, hMenu);
 
    if (!hWnd)
    {
@@ -122,6 +132,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
    return TRUE;
 }
+
 
 //
 //  FUNCTION: WndProc(HWND, UINT, WPARAM, LPARAM)
@@ -139,6 +150,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	PAINTSTRUCT ps;
 	HDC hdc;
 	int player;
+	int won = 0;
 	switch (message)
 	{
 	case WM_COMMAND:
@@ -148,7 +160,25 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if (wmId >= BUTTONZ && wmId < BUTTONZEND)
 		{
 			try{
-				g_field.TakeTurn(wmId - BUTTONZ, player);
+				won = g_field.TakeTurn(wmId - BUTTONZ, player);
+				if(won != 0)
+				{
+					SetDlgItemTextA(hWnd, wmId, Field::GameSymbols[player]);
+					switch (won)
+					{
+					case -1:
+						MessageBoxA(NULL, "Nobody wins", "Game Over", MB_OK);
+						break;
+					case 1:
+						MessageBoxA(NULL, "Player 1 wins", "Game Over", MB_OK);
+						break;
+					case 2:
+						MessageBoxA(NULL, "Player 2 wins", "Game Over", MB_OK);
+						break;
+					default:
+						break;
+					}
+				}
 				SetDlgItemTextA(hWnd, wmId, Field::GameSymbols[player]);
 			}
 			catch (const char* msg)
