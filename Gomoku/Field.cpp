@@ -27,7 +27,7 @@ Field::GameState Field::GetGamestate()
 */
 int Field::TakeTurn(int n)
 {
-	if (_gameState != 0)
+	if (_gameState != NotFinished)
 		throw "Game is over, no turns can be taken";
 	GameState winner;
 	if ((winner = WhoWon(_lastTurn)) != NotFinished)
@@ -44,7 +44,7 @@ int Field::TakeTurn(int n)
 	if (PlaceSymbol(n) == false)
 		throw "this cell is occupied";
 	
-	_activePlayerNumber = (_activePlayerNumber % 2) + 1;
+	SwitchPlayer();
 
 	_lastTurn = n;
 	_gameState = WhoWon(n);
@@ -68,9 +68,9 @@ char Field::GetCell(int cellRow, int cellColumn)
 	return GetCell(cellRow*size + cellColumn);
 }
 
-int Field::GetActivePlayerNumber()
+Field::Player Field::GetActivePlayer()
 {
-	return _activePlayerNumber;
+	return _activePlayer;
 }
 
 std::string Field::toString()
@@ -166,11 +166,19 @@ Field::GameState Field::WhoWon(int turnRow, int turnColumn)
 	return WhoWon(turnRow*size + turnColumn);
 }
 
+void Field::SwitchPlayer()
+{
+	if (_activePlayer == Krestiki)
+		_activePlayer = Noliki;
+	else
+		_activePlayer = Krestiki;
+}
+
 bool Field::PlaceSymbol(int n)
 {
 	if (_field[n] == 0)
 	{
-		_field[n] = _activePlayerNumber;
+		_field[n] = (int)_activePlayer;
 		return true;
 	}
 	else return false;

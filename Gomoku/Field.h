@@ -15,7 +15,7 @@ public:
 	//состояние игры
 	enum GameState { NotFinished, KrestikiWon, NolikiWon, Draw };
 	//для самоидентификации игроков
-	enum Player { Kresiki, Noliki };
+	enum Player { Krestiki = 1, Noliki };
 	//инициализация поля
 	Field();
 	~Field() {};
@@ -32,7 +32,7 @@ public:
 	int TakeTurn (int row, int column);
 
 	//запросить номер игрока, который сейчас делает ход
-	int GetActivePlayerNumber();
+	Player GetActivePlayer();
 
 	//запросить, что находится в определённой клеточке
 	char GetCell(int cellIndex);
@@ -45,6 +45,13 @@ public:
 	GameState WhoWon(int turnIndex);
 	GameState WhoWon(int turnRow, int turnColumn);
 private:
+
+	//сменить активного игрока
+	void SwitchPlayer();
+
+	//активный игрок
+	Player _activePlayer = Player::Krestiki;
+
 	//состояние игры
 	GameState _gameState = NotFinished;
 
@@ -59,8 +66,6 @@ private:
 	bool PlaceSymbol(int row, int column);
 
 	int _lastTurn = -1;
-	//номер игрока, который ходит сейчас
-	int _activePlayerNumber = 1;
 	//направления - вниз, вправо, вправо-вниз, вправо-вверх
 	enum Directions { DOWN, RIGHT, DOWNRIGHT, UPRIGHT};
 	//внутреннее представление поля

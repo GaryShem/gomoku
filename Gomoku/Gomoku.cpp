@@ -18,10 +18,9 @@ HINSTANCE hInst;								// current instance
 TCHAR szTitle[MAX_LOADSTRING];					// The title bar text
 TCHAR szWindowClass[MAX_LOADSTRING];			// the main window class name
 Field g_field;
+HANDLE g_hSyncThread;
 char g_ip[100];
 char g_message[SIZE];
-Server g_server;
-Client g_client;
 Network g_network;
 Field::Player g_thisPlayer;
 
@@ -31,6 +30,7 @@ BOOL				InitInstance(HINSTANCE, int);
 LRESULT CALLBACK	WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK	About(HWND, UINT, WPARAM, LPARAM);
 BOOL CALLBACK		IPItemProc(HWND, UINT, WPARAM, LPARAM);
+DWORD WINAPI 		ReceiveOtherPlayerTurn(LPVOID lpParam);
 
 int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -138,7 +138,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 			20+j*buttonSize, 20+i*buttonSize, buttonSize, buttonSize,
 			hWnd, (HMENU)(BUTTONZ+i*SIZE+j), hInstance, NULL);
 
-   AppendMenuW((HMENU)GetDlgItem(hWnd, IDM_ABOUT), MF_STRING, IDM_ABOUT, L"&Open");
+   DWORD thread_id;
+   g_hSyncThread = CreateThread(NULL, 0, ReceiveOtherPlayerTurn, hWnd, 0, &thread_id);
 
    if (!hWnd)
    {
@@ -149,22 +150,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    UpdateWindow(hWnd);
 
    return TRUE;
-}
-
-void thisPlayerTurn(HWND hWnd, int wmId, int cellIndex)
-{
-	//наш ход
-	g_field.TakeTurn(cellIndex);
-	SetDlgItemTextA(hWnd, wmId, Field::GameSymbols[g_field.GetCell(cellIndex)]);
-	g_server.SendTurn(cellIndex);
-}
-void otherPlayerTurn(HWND hWnd, int wmId, int cellIndex)
-{
-
-	//чужой ход
-	cellIndex = g_server.ReceiveTurn();
-	g_field.TakeTurn(cellIndex);
-	SetDlgItemTextA(hWnd, wmId, Field::GameSymbols[g_field.GetCell(cellIndex)]);
 }
 
 //
@@ -188,23 +173,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		wmId    = LOWORD(wParam);
 		wmEvent = HIWORD(wParam);
 		// Parse the menu selections:
-		if (wmId >= BUTTONZ && wmId < BUTTONZEND && g_network.gomokuPipe != INVALID_HANDLE_VALUE)
+		if (wmId >= BUTTONZ && wmId < BUTTONZEND && g_network.gomokuPipe != INVALID_HANDLE_VALUE && g_thisPlayer == g_field.GetActivePlayer())
 		{
 			int cellIndex = wmId - BUTTONZ;
 			try{
 				//если мы - крестики, то мы сначала ходим, а потом ждём хода ноликов (если не выиграли своим ходом)
-				if (g_thisPlayer == Field::Kresiki)
-				{
-					thisPlayerTurn(hWnd, wmId, cellIndex);
-					if (g_field.GetGamestate() == Field::NotFinished)
-						otherPlayerTurn(hWnd, wmId, cellIndex);
-				}
-				else if (g_thisPlayer == Field::Noliki) //если же мы - нолики, то мы сначала ждём ход крестиков, а потом ходим сами (если крестики не выиграли)
-				{
-					otherPlayerTurn(hWnd, wmId, cellIndex);
-					if (g_field.GetGamestate() == Field::NotFinished)
-						thisPlayerTurn(hWnd, wmId, cellIndex);
-				}
+				g_field.TakeTurn(cellIndex);
+				SetDlgItemTextA(hWnd, wmId, Field::GameSymbols[g_field.GetCell(cellIndex)]);
+				g_network.SendTurn(cellIndex);
 			}
 			catch (const char* msg)
 			{
@@ -215,7 +191,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 		case BTN_CREATE_ID:
 			g_network.CreateServer();
-			g_thisPlayer = Field::Kresiki;
+			g_thisPlayer = Field::Krestiki;
 			break;
 		case BTN_CONNECT_ID:
 			DialogBox(hInst, MAKEINTRESOURCE(IDD_DIALOG1), hWnd, (DLGPROC)IPItemProc);
@@ -295,4 +271,19 @@ BOOL CALLBACK IPItemProc(HWND hwndDlg, UINT message, WPARAM wParam, LPARAM lPara
 		}
 	}
 	return FALSE;
+}
+
+DWORD WINAPI ReceiveOtherPlayerTurn(LPVOID lpParam)
+{
+	HWND hWnd = (HWND)lpParam;
+	while (g_field.GetGamestate() == Field::NotFinished)
+	{
+		if (g_network.gomokuPipe != INVALID_HANDLE_VALUE)
+		{
+			int cellIndex = g_network.ReceiveTurn();
+			g_field.TakeTurn(cellIndex);
+			SetDlgItemTextA(hWnd, cellIndex + BUTTONZ, Field::GameSymbols[g_field.GetCell(cellIndex)]);
+		}
+	}
+	return 0;
 }
