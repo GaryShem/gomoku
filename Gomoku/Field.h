@@ -1,7 +1,7 @@
 #ifndef FIELD_H_
 #define FIELD_H_
 
-#define SIZE	15
+#define SIZE	Field::size
 #include <string>
 #include <array>
 
@@ -9,9 +9,13 @@ class Field
 {
 public:
 	//размер поля
-	static const int size = SIZE;
+	static const int size = 15;
+	//сколько нужно в ряд для победы
 	static const int streak = 5;
-
+	//состояние игры
+	enum GameState { NotFinished, KrestikiWon, NolikiWon, Draw };
+	//для самоидентификации игроков
+	enum Player { Kresiki, Noliki };
 	//инициализация поля
 	Field();
 	~Field() {};
@@ -20,21 +24,29 @@ public:
 	//можно играть в "слепое" гомоку - поставить везде пробельчики и играть по памяти
 	static char* GameSymbols[3]; //= { ' ', 'X', 'O' };
 
-	int GetGamestate();
+	//получить текущее состояние игры (закончена ли и кто выиграл)
+	GameState GetGamestate();
 
 	//функция инициации хода
-	int TakeTurn (int n, int& player);
-	int TakeTurn (int row, int column, int& player);
+	int TakeTurn (int n);
+	int TakeTurn (int row, int column);
+
+	//запросить номер игрока, который сейчас делает ход
+	int GetActivePlayerNumber();
+
+	//запросить, что находится в определённой клеточке
+	char GetCell(int cellIndex);
+	char GetCell(int cellRow, int cellColumn);
 
 	//преобразование массива к std::string. Мало ли.
 	std::string toString();
 
 	//определяет, закончена ли игра и кто победил
-	int WhoWon(int turnIndex);
-	int WhoWon(int turnRow, int turnColumn);
+	GameState WhoWon(int turnIndex);
+	GameState WhoWon(int turnRow, int turnColumn);
 private:
 	//состояние игры
-	int _gameState = 0;
+	GameState _gameState = NotFinished;
 
 	//проверяет по координатам, находится ли клетка внутри поля
 	bool IsWithinBounds(int n);

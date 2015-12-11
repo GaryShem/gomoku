@@ -8,18 +8,29 @@
 #define MAX_LOADSTRING	100
 #define BUTTONZ			4444
 #define BUTTONZEND		BUTTONZ+SIZE*SIZE
+#include "Server.h"
+#include "Client.h"
+#include "Network.h"
+
 
 // Global Variables:
 HINSTANCE hInst;								// current instance
 TCHAR szTitle[MAX_LOADSTRING];					// The title bar text
 TCHAR szWindowClass[MAX_LOADSTRING];			// the main window class name
 Field g_field;
+char g_ip[100];
+char g_message[SIZE];
+Server g_server;
+Client g_client;
+Network g_network;
+Field::Player g_thisPlayer;
 
 // Forward declarations of functions included in this code module:
 ATOM				MyRegisterClass(HINSTANCE hInstance);
 BOOL				InitInstance(HINSTANCE, int);
 LRESULT CALLBACK	WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK	About(HWND, UINT, WPARAM, LPARAM);
+BOOL CALLBACK		IPItemProc(HWND, UINT, WPARAM, LPARAM);
 
 int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -47,13 +58,28 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 	hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_GOMOKU));
 
 	// Main message loop:
-	while (GetMessage(&msg, NULL, 0, 0))
+	while (g_field.GetGamestate() == 0 && GetMessage(&msg, NULL, 0, 0))
 	{
 		if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
 		{
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 		}
+	}
+
+	switch (g_field.GetGamestate())
+	{
+	case Field::Draw:
+		MessageBoxA(NULL, "It's a draw!", "Game Over", MB_OK);
+		break;
+	case Field::KrestikiWon:
+		MessageBoxA(NULL, "Krestiki has won!", "Game Over", MB_OK);
+		break;
+	case Field::NolikiWon:
+		MessageBoxA(NULL, "Noliki has won!", "Game Over", MB_OK);
+		break;
+	default:
+		break;
 	}
 
 	return (int) msg.wParam;
@@ -102,10 +128,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    HWND hWnd;
 
    hInst = hInstance; // Store instance handle in our global variable
-
-   //HMENU hMenu = CreateMenu(); 
-	//HMENU hPopMenuFile = CreatePopupMenu();
-
+   
    hWnd = CreateWindow(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
       CW_USEDEFAULT, 0, 500, 500, NULL, NULL, hInstance, NULL);
    int buttonSize = 25;
@@ -115,12 +138,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 			20+j*buttonSize, 20+i*buttonSize, buttonSize, buttonSize,
 			hWnd, (HMENU)(BUTTONZ+i*SIZE+j), hInstance, NULL);
 
-   GetMenuItemInfo()
-   
-   //AppendMenu(hMenu, MF_STRING | MF_POPUP, (UINT)hPopMenuFile, L"File");
-   //AppendMenu(hPopMenuFile, MF_STRING, 1001, L"wat");
-   //AppendMenu(hMenu1, MF_STRING, 0, L"Filikii");
-   //SetMenu(hWnd, hMenu);
+   AppendMenuW((HMENU)GetDlgItem(hWnd, IDM_ABOUT), MF_STRING, IDM_ABOUT, L"&Open");
 
    if (!hWnd)
    {
@@ -133,6 +151,21 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    return TRUE;
 }
 
+void thisPlayerTurn(HWND hWnd, int wmId, int cellIndex)
+{
+	//наш ход
+	g_field.TakeTurn(cellIndex);
+	SetDlgItemTextA(hWnd, wmId, Field::GameSymbols[g_field.GetCell(cellIndex)]);
+	g_server.SendTurn(cellIndex);
+}
+void otherPlayerTurn(HWND hWnd, int wmId, int cellIndex)
+{
+
+	//чужой ход
+	cellIndex = g_server.ReceiveTurn();
+	g_field.TakeTurn(cellIndex);
+	SetDlgItemTextA(hWnd, wmId, Field::GameSymbols[g_field.GetCell(cellIndex)]);
+}
 
 //
 //  FUNCTION: WndProc(HWND, UINT, WPARAM, LPARAM)
@@ -149,37 +182,29 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	int wmId, wmEvent;
 	PAINTSTRUCT ps;
 	HDC hdc;
-	int player;
-	int won = 0;
 	switch (message)
 	{
 	case WM_COMMAND:
 		wmId    = LOWORD(wParam);
 		wmEvent = HIWORD(wParam);
 		// Parse the menu selections:
-		if (wmId >= BUTTONZ && wmId < BUTTONZEND)
+		if (wmId >= BUTTONZ && wmId < BUTTONZEND && g_network.gomokuPipe != INVALID_HANDLE_VALUE)
 		{
+			int cellIndex = wmId - BUTTONZ;
 			try{
-				won = g_field.TakeTurn(wmId - BUTTONZ, player);
-				if(won != 0)
+				//если мы - крестики, то мы сначала ходим, а потом ждём хода ноликов (если не выиграли своим ходом)
+				if (g_thisPlayer == Field::Kresiki)
 				{
-					SetDlgItemTextA(hWnd, wmId, Field::GameSymbols[player]);
-					switch (won)
-					{
-					case -1:
-						MessageBoxA(NULL, "Nobody wins", "Game Over", MB_OK);
-						break;
-					case 1:
-						MessageBoxA(NULL, "Player 1 wins", "Game Over", MB_OK);
-						break;
-					case 2:
-						MessageBoxA(NULL, "Player 2 wins", "Game Over", MB_OK);
-						break;
-					default:
-						break;
-					}
+					thisPlayerTurn(hWnd, wmId, cellIndex);
+					if (g_field.GetGamestate() == Field::NotFinished)
+						otherPlayerTurn(hWnd, wmId, cellIndex);
 				}
-				SetDlgItemTextA(hWnd, wmId, Field::GameSymbols[player]);
+				else if (g_thisPlayer == Field::Noliki) //если же мы - нолики, то мы сначала ждём ход крестиков, а потом ходим сами (если крестики не выиграли)
+				{
+					otherPlayerTurn(hWnd, wmId, cellIndex);
+					if (g_field.GetGamestate() == Field::NotFinished)
+						thisPlayerTurn(hWnd, wmId, cellIndex);
+				}
 			}
 			catch (const char* msg)
 			{
@@ -188,6 +213,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		switch (wmId)
 		{
+		case BTN_CREATE_ID:
+			g_network.CreateServer();
+			g_thisPlayer = Field::Kresiki;
+			break;
+		case BTN_CONNECT_ID:
+			DialogBox(hInst, MAKEINTRESOURCE(IDD_DIALOG1), hWnd, (DLGPROC)IPItemProc);
+			break;
 		case IDM_ABOUT:
 			DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
 			break;
@@ -228,6 +260,39 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 			return (INT_PTR)TRUE;
 		}
 		break;
+	default:
+		return DefWindowProc(hDlg, message, wParam, lParam);
 	}
 	return (INT_PTR)FALSE;
+}
+
+BOOL CALLBACK IPItemProc(HWND hwndDlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	switch (message)
+	{
+	case WM_COMMAND:
+		switch (LOWORD(wParam))
+		{
+		case IDOK:
+			if (!GetDlgItemTextA(hwndDlg, IDC_EDIT1, g_ip, 100))
+				g_ip[0] = 0;
+			else
+			{
+				try{
+					g_network.ConnectToServer(g_ip);
+					g_thisPlayer = Field::Noliki;
+				}
+				catch (const char* msg)
+				{
+					MessageBoxA(NULL, msg, "Network Error", MB_OK);
+				}
+			}
+			// Fall through. 
+
+		case IDCANCEL:
+			EndDialog(hwndDlg, wParam);
+			return TRUE;
+		}
+	}
+	return FALSE;
 }

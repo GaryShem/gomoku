@@ -12,7 +12,7 @@ Field::Field()
 		c = 0;
 }
 
-int Field::GetGamestate()
+Field::GameState Field::GetGamestate()
 {
 	return _gameState;
 }
@@ -25,12 +25,12 @@ int Field::GetGamestate()
 1	- победил 1-й игрок
 2	- победил 2-й игрок
 */
-int Field::TakeTurn(int n, int& player)
+int Field::TakeTurn(int n)
 {
 	if (_gameState != 0)
 		throw "Game is over, no turns can be taken";
-	int winner;
-	if ((winner = WhoWon(_lastTurn)) != 0)
+	GameState winner;
+	if ((winner = WhoWon(_lastTurn)) != NotFinished)
 	{
 		_gameState = winner;
 		return winner;
@@ -43,9 +43,7 @@ int Field::TakeTurn(int n, int& player)
 	//если пытаются пойти в уже занятую клеточку
 	if (PlaceSymbol(n) == false)
 		throw "this cell is occupied";
-
-	player = _activePlayerNumber;
-
+	
 	_activePlayerNumber = (_activePlayerNumber % 2) + 1;
 
 	_lastTurn = n;
@@ -53,9 +51,26 @@ int Field::TakeTurn(int n, int& player)
 	return _gameState;
 }
 
-int Field::TakeTurn(int row, int column, int& player)
+int Field::TakeTurn(int row, int column)
 {
-	return TakeTurn(row*size + column, player);
+	return TakeTurn(row*size + column);
+}
+
+char Field::GetCell(int cellIndex)
+{
+	if (IsWithinBounds(cellIndex) == false)
+		throw "Cell out of bounds";
+	return _field[cellIndex];
+}
+
+char Field::GetCell(int cellRow, int cellColumn)
+{
+	return GetCell(cellRow*size + cellColumn);
+}
+
+int Field::GetActivePlayerNumber()
+{
+	return _activePlayerNumber;
 }
 
 std::string Field::toString()
@@ -92,12 +107,12 @@ bool Field::IsWithinBounds(int row, int column)
 	1	- победил 1-й игрок
 	2	- победил 2-й игрок
 */
-int Field::WhoWon(int turnIndex)
+Field::GameState Field::WhoWon(int turnIndex)
 {
 	//такое может быть только в самом начале игры, перед первым ходом
 	//в этом случае мы знаем, что игра по-любому продолжается
 	if (turnIndex < 0)
-		return 0;
+		return NotFinished;
 	int directions[4][2] = { { 1, 0 }, { 0, 1 }, { -1, 1 }, { 1, 1 } };
 		int count = 0;
 	//проверяем каждое направление
@@ -136,17 +151,17 @@ int Field::WhoWon(int turnIndex)
 		if (count >= 5)
 		{
 			if (_field[turnIndex] == 1)
-				return 1; //победил игрок один - крестики
+				return KrestikiWon; //победил игрок один - крестики
 			if (_field[turnIndex] == 2)
-				return 2; //победил игрок два - нолики
+				return NolikiWon; //победил игрок два - нолики
 		}
 	}
 	if (toString().find(GameSymbols[0]) == std::string::npos)
-		return -1; //все поля заполнены, победителя быть не может - игра закончилась ничьёй
-	return 0; //игра не окончена
+		return Draw; //все поля заполнены, победителя быть не может - игра закончилась ничьёй
+	return NotFinished; //игра не окончена
 }
 
-int Field::WhoWon(int turnRow, int turnColumn)
+Field::GameState Field::WhoWon(int turnRow, int turnColumn)
 {
 	return WhoWon(turnRow*size + turnColumn);
 }
