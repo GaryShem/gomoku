@@ -1,4 +1,6 @@
 #pragma once
+#include "Field.h"
+
 class Network
 {
 public:
@@ -8,6 +10,8 @@ public:
 	void ConnectToServer(char* ip);
 	void SendTurn(int cellIndex);
 	int ReceiveTurn();
-	HANDLE gomokuPipe = INVALID_HANDLE_VALUE;
+	HANDLE gomokuServerPipe = INVALID_HANDLE_VALUE;
+	HANDLE gomokuClientPipe = INVALID_HANDLE_VALUE;
+	Field::Player currentPlayer;
 };
 

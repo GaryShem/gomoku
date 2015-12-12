@@ -173,7 +173,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		wmId    = LOWORD(wParam);
 		wmEvent = HIWORD(wParam);
 		// Parse the menu selections:
-		if (wmId >= BUTTONZ && wmId < BUTTONZEND && g_network.gomokuPipe != INVALID_HANDLE_VALUE && g_thisPlayer == g_field.GetActivePlayer())
+		if (wmId >= BUTTONZ && wmId < BUTTONZEND && g_network.gomokuServerPipe != INVALID_HANDLE_VALUE
+			&& g_network.gomokuClientPipe != INVALID_HANDLE_VALUE && g_thisPlayer == g_field.GetActivePlayer())
 		{
 			int cellIndex = wmId - BUTTONZ;
 			try{
@@ -192,6 +193,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case BTN_CREATE_ID:
 			g_network.CreateServer();
 			g_thisPlayer = Field::Krestiki;
+			g_network.currentPlayer = g_thisPlayer;
 			break;
 		case BTN_CONNECT_ID:
 			DialogBox(hInst, MAKEINTRESOURCE(IDD_DIALOG1), hWnd, (DLGPROC)IPItemProc);
@@ -257,6 +259,7 @@ BOOL CALLBACK IPItemProc(HWND hwndDlg, UINT message, WPARAM wParam, LPARAM lPara
 				try{
 					g_network.ConnectToServer(g_ip);
 					g_thisPlayer = Field::Noliki;
+					g_network.currentPlayer = g_thisPlayer;
 				}
 				catch (const char* msg)
 				{
@@ -278,11 +281,14 @@ DWORD WINAPI ReceiveOtherPlayerTurn(LPVOID lpParam)
 	HWND hWnd = (HWND)lpParam;
 	while (g_field.GetGamestate() == Field::NotFinished)
 	{
-		if (g_network.gomokuPipe != INVALID_HANDLE_VALUE)
+		if (g_network.gomokuServerPipe != INVALID_HANDLE_VALUE && g_network.gomokuClientPipe != INVALID_HANDLE_VALUE)
 		{
 			int cellIndex = g_network.ReceiveTurn();
-			g_field.TakeTurn(cellIndex);
-			SetDlgItemTextA(hWnd, cellIndex + BUTTONZ, Field::GameSymbols[g_field.GetCell(cellIndex)]);
+			if (cellIndex != -1000)
+			{
+				g_field.TakeTurn(cellIndex);
+				SetDlgItemTextA(hWnd, cellIndex + BUTTONZ, Field::GameSymbols[g_field.GetCell(cellIndex)]);
+			}
 		}
 	}
 	return 0;
