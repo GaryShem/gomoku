@@ -36,7 +36,7 @@ void Network::SendTurn(int cellIndex)
 		break;
 	}
 }
-
+//receive - получить
 int Network::ReceiveTurn()
 {
 	int cellIndex;

@@ -4,13 +4,11 @@
 #include "stdafx.h"
 #include "Gomoku.h"
 #include "Field.h"
+#include "Network.h"
 
 #define MAX_LOADSTRING	100
 #define BUTTONZ			4444
 #define BUTTONZEND		BUTTONZ+SIZE*SIZE
-#include "Server.h"
-#include "Client.h"
-#include "Network.h"
 
 
 // Global Variables:

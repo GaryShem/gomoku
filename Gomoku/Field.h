@@ -28,8 +28,8 @@ public:
 	GameState GetGamestate();
 
 	//функция инициации хода
-	int TakeTurn (int n);
-	int TakeTurn (int row, int column);
+	GameState TakeTurn (int n);
+	GameState TakeTurn(int row, int column);
 
 	//запросить номер игрока, который сейчас делает ход
 	Player GetActivePlayer();

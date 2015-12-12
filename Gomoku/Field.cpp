@@ -25,7 +25,7 @@ Field::GameState Field::GetGamestate()
 1	- победил 1-й игрок
 2	- победил 2-й игрок
 */
-int Field::TakeTurn(int n)
+Field::GameState Field::TakeTurn(int n)
 {
 	if (_gameState != NotFinished)
 		throw "Game is over, no turns can be taken";
@@ -51,7 +51,7 @@ int Field::TakeTurn(int n)
 	return _gameState;
 }
 
-int Field::TakeTurn(int row, int column)
+Field::GameState Field::TakeTurn(int row, int column)
 {
 	return TakeTurn(row*size + column);
 }
