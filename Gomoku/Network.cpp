@@ -11,11 +11,13 @@ Network::Network()
 
 void Network::CreateServer()
 {
-	gomokuServerPipe = CreateNamedPipe(L"\\\\.\\pipe\\asdfGomokuServerPipe", PIPE_ACCESS_DUPLEX, PIPE_TYPE_MESSAGE, 1, sizeof(int), sizeof(int), 2000, NULL);
+	if (gomokuServerPipe != INVALID_HANDLE_VALUE || gomokuClientPipe != INVALID_HANDLE_VALUE)
+		throw "Connection is already up";
+	gomokuServerPipe = CreateNamedPipe(L"\\\\.\\pipe\\asdfGomokuServerPipe", PIPE_ACCESS_DUPLEX, PIPE_TYPE_MESSAGE, 2, sizeof(int), sizeof(int), 2000, NULL);
 	if (gomokuServerPipe == INVALID_HANDLE_VALUE)
 		throw "Could not create a server";
 
-	gomokuClientPipe = CreateNamedPipe(L"\\\\.\\pipe\\asdfGomokuClientPipe", PIPE_ACCESS_DUPLEX, PIPE_TYPE_MESSAGE, 1, sizeof(int), sizeof(int), 2000, NULL);
+	gomokuClientPipe = CreateNamedPipe(L"\\\\.\\pipe\\asdfGomokuClientPipe", PIPE_ACCESS_DUPLEX, PIPE_TYPE_MESSAGE, 2, sizeof(int), sizeof(int), 2000, NULL);
 	if (gomokuClientPipe == INVALID_HANDLE_VALUE)
 		throw "Could not create a server";
 
@@ -58,6 +60,8 @@ int Network::ReceiveTurn()
 
 void Network::ConnectToServer(char* ip)
 {
+	if (gomokuServerPipe != INVALID_HANDLE_VALUE || gomokuClientPipe != INVALID_HANDLE_VALUE)
+		throw "Connection is already up";
 	std::ostringstream server, client;
 	server << "\\\\" << ip << "\\pipe\\asdfGomokuServerPipe";
 	gomokuServerPipe = CreateFileA(server.str().c_str(), GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
@@ -73,4 +77,6 @@ Network::~Network()
 {
 	if (gomokuServerPipe != INVALID_HANDLE_VALUE)
 		CloseHandle(gomokuServerPipe);
+	if (gomokuClientPipe != INVALID_HANDLE_VALUE)
+		CloseHandle(gomokuClientPipe);
 }

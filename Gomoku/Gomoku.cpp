@@ -189,9 +189,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		switch (wmId)
 		{
 		case BTN_CREATE_ID:
-			g_network.CreateServer();
-			g_thisPlayer = Field::Krestiki;
-			g_network.currentPlayer = g_thisPlayer;
+			try{
+				g_network.CreateServer();
+				g_thisPlayer = Field::Krestiki;
+				g_network.currentPlayer = g_thisPlayer;
+			}
+			catch (const char* msg)
+			{
+				MessageBoxA(NULL, msg, "Network Error", MB_OK);
+			}
 			break;
 		case BTN_CONNECT_ID:
 			DialogBox(hInst, MAKEINTRESOURCE(IDD_DIALOG1), hWnd, (DLGPROC)IPItemProc);
@@ -277,17 +283,21 @@ BOOL CALLBACK IPItemProc(HWND hwndDlg, UINT message, WPARAM wParam, LPARAM lPara
 DWORD WINAPI ReceiveOtherPlayerTurn(LPVOID lpParam)
 {
 	HWND hWnd = (HWND)lpParam;
-	while (g_field.GetGamestate() == Field::NotFinished)
-	{
-		if (g_network.gomokuServerPipe != INVALID_HANDLE_VALUE && g_network.gomokuClientPipe != INVALID_HANDLE_VALUE)
+	try{
+		while (g_field.GetGamestate() == Field::NotFinished)
 		{
-			int cellIndex = g_network.ReceiveTurn();
-			if (cellIndex != -1000)
+			if (g_network.gomokuServerPipe != INVALID_HANDLE_VALUE && g_network.gomokuClientPipe != INVALID_HANDLE_VALUE)
 			{
-				g_field.TakeTurn(cellIndex);
-				SetDlgItemTextA(hWnd, cellIndex + BUTTONZ, Field::GameSymbols[g_field.GetCell(cellIndex)]);
+				int cellIndex = g_network.ReceiveTurn();
+				if (cellIndex != -1000)
+				{
+					g_field.TakeTurn(cellIndex);
+					SetDlgItemTextA(hWnd, cellIndex + BUTTONZ, Field::GameSymbols[g_field.GetCell(cellIndex)]);
+				}
 			}
 		}
 	}
+	catch (...)
+	{ }
 	return 0;
 }

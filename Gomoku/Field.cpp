@@ -116,14 +116,14 @@ Field::GameState Field::WhoWon(int turnIndex)
 	int directions[4][2] = { { 1, 0 }, { 0, 1 }, { -1, 1 }, { 1, 1 } };
 		int count = 0;
 	//проверяем каждое направление
-	for (int k = 0; k < 4 && count < 5; k++)
+	for (int k = 0; k < 4 && count < streak; k++)
 	{
 		count = 0;
 		//идём по нему от от меньшего к большему
 		//всего 9 шагов - по 4 в меньшую и большую стороны (чтобы с текущей клеткой было 5 - это предельные значения)
-		int row = (turnIndex/size) + directions[k][0] * (-4);
-		int column = (turnIndex%size) + directions[k][1] * (-4);
-		for (int step = 0, limit = streak*2-1; step < limit && count < 5; step++)
+		int row = (turnIndex/size) + directions[k][0] * (-(streak-1));
+		int column = (turnIndex%size) + directions[k][1] * (-(streak - 1));
+		for (int step = 0, limit = streak*2-1; step < limit && count < streak; step++)
 		{
 			//если эта клетка за пределами поля, то она не может быть частью серии
 			//поэтому лучше просто пропустить итерацию цикла, а не выходить из него
@@ -148,7 +148,7 @@ Field::GameState Field::WhoWon(int turnIndex)
 			row += directions[k][0];
 			column += directions[k][1];
 		}
-		if (count >= 5)
+		if (count >= streak)
 		{
 			if (_field[turnIndex] == 1)
 				return KrestikiWon; //победил игрок один - крестики
